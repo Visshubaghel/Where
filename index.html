@@ -3,8 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professor Locator</title>
+    <title>Where Prof</title>
     <style>
+        :root {
+            --primary-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-light: #666666;
+            --border-color: #e0e0e0;
+            --accent-color: #667eea;
+            --status-free: #e8f5e8;
+            --status-busy: #ffeaa7;
+            --status-no-class: #e3f2fd;
+            --suggestion-hover: #f8f9fa;
+            --class-item-bg: #f8f9fa;
+        }
+        
+        [data-theme="dark"] {
+            --primary-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --card-bg: #2c3e50;
+            --text-color: #ecf0f1;
+            --text-light: #bdc3c7;
+            --border-color: #34495e;
+            --accent-color: #3498db;
+            --status-free: #27ae60;
+            --status-busy: #f39c12;
+            --status-no-class: #3498db;
+            --suggestion-hover: #34495e;
+            --class-item-bg: #34495e;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -14,9 +42,10 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-color);
+            background: var(--primary-bg);
             min-height: 100vh;
+            transition: all 0.3s ease;
         }
         
         .container {
@@ -43,7 +72,7 @@
         }
         
         .search-container {
-            background: white;
+            background: var(--card-bg);
             border-radius: 15px;
             padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -59,14 +88,16 @@
             width: 100%;
             padding: 15px 20px;
             font-size: 1.1rem;
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border-color);
             border-radius: 10px;
             outline: none;
             transition: all 0.3s ease;
+            background: var(--card-bg);
+            color: var(--text-color);
         }
         
         .search-input:focus {
-            border-color: #667eea;
+            border-color: var(--accent-color);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
@@ -75,8 +106,8 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: white;
-            border: 1px solid #e0e0e0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-top: none;
             border-radius: 0 0 10px 10px;
             max-height: 200px;
@@ -89,11 +120,12 @@
             padding: 12px 20px;
             cursor: pointer;
             transition: background-color 0.2s ease;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color);
         }
         
         .suggestion-item:hover {
-            background-color: #f8f9fa;
+            background-color: var(--suggestion-hover);
         }
         
         .suggestion-item:last-child {
@@ -101,7 +133,7 @@
         }
         
         .professor-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 15px;
             padding: 25px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
@@ -118,9 +150,9 @@
         .professor-name {
             font-size: 1.5rem;
             font-weight: bold;
-            color: #333;
+            color: var(--text-color);
             margin-bottom: 15px;
-            border-bottom: 2px solid #667eea;
+            border-bottom: 2px solid var(--accent-color);
             padding-bottom: 10px;
         }
         
@@ -131,47 +163,50 @@
         .status-title {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #555;
+            color: var(--text-light);
             margin-bottom: 8px;
         }
         
         .status-info {
             padding: 12px 15px;
             border-radius: 8px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--accent-color);
         }
         
         .status-free {
-            background-color: #e8f5e8;
+            background-color: var(--status-free);
             border-left-color: #4caf50;
+            color: var(--text-color);
         }
         
         .status-busy {
-            background-color: #ffeaa7;
+            background-color: var(--status-busy);
             border-left-color: #f39c12;
+            color: var(--text-color);
         }
         
         .status-no-class {
-            background-color: #e3f2fd;
+            background-color: var(--status-no-class);
             border-left-color: #2196f3;
+            color: var(--text-color);
         }
         
         .class-item {
-            background: #f8f9fa;
+            background: var(--class-item-bg);
             padding: 12px 15px;
             border-radius: 8px;
             margin-bottom: 10px;
-            border-left: 3px solid #667eea;
+            border-left: 3px solid var(--accent-color);
         }
         
         .class-time {
             font-weight: 600;
-            color: #667eea;
+            color: var(--accent-color);
         }
         
         .class-details {
             margin-top: 5px;
-            color: #666;
+            color: var(--text-light);
         }
         
         .current-time {
@@ -222,12 +257,47 @@
             font-size: 1.1rem;
             opacity: 0.9;
         }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            padding: 10px 20px;
+            cursor: pointer;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            z-index: 1001;
+            backdrop-filter: blur(10px);
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        [data-theme="dark"] .theme-toggle {
+            background: rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.2);
+        }
+        
+        [data-theme="dark"] .theme-toggle:hover {
+            background: rgba(0,0,0,0.4);
+        }
     </style>
 </head>
 <body>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
+    </button>
+    
     <div class="container">
         <div class="header">
-            <h1>🎓 Professor Locator</h1>
+            <h1>🎓 Where Prof</h1>
             <p>Find your professors instantly - Know where they are, when they're free</p>
         </div>
 
@@ -441,8 +511,18 @@
             }
             
             suggestionsDiv.innerHTML = suggestions.map(prof => 
-                `<div class="suggestion-item" onclick="selectProfessor('${prof}')">${prof}</div>`
+                `<div class="suggestion-item" data-prof="${prof}">${prof}</div>`
             ).join('');
+            
+            // Add click event listeners to each suggestion
+            suggestionsDiv.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const profName = this.getAttribute('data-prof');
+                    selectProfessor(profName);
+                });
+            });
             
             suggestionsDiv.style.display = 'block';
         }
@@ -455,7 +535,7 @@
 
         function selectProfessor(profName) {
             document.getElementById('professorSearch').value = profName;
-            hideSuggestions();
+            document.getElementById('suggestions').style.display = 'none';
             showProfessorInfo(profName);
         }
 
@@ -541,6 +621,41 @@
             professorCard.style.display = 'block';
         }
 
+        // Theme toggle functionality
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+            
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light';
+            } else {
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark';
+            }
+        }
+
         // Event listeners
         document.getElementById('professorSearch').addEventListener('input', function(e) {
             const query = e.target.value.trim();
@@ -551,13 +666,18 @@
                     const suggestions = searchProfessors(query);
                     showSuggestions(suggestions);
                 } else {
-                    hideSuggestions();
+                    document.getElementById('suggestions').style.display = 'none';
                     document.getElementById('professorCard').style.display = 'none';
                 }
             }, 300);
         });
 
-        document.getElementById('professorSearch').addEventListener('blur', hideSuggestions);
+        document.getElementById('professorSearch').addEventListener('blur', function() {
+            // Delay hiding suggestions to allow click events to fire
+            setTimeout(() => {
+                document.getElementById('suggestions').style.display = 'none';
+            }, 150);
+        });
 
         document.getElementById('professorSearch').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
@@ -573,6 +693,7 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
+            loadTheme();
             loadProfessorsData();
             updateCurrentTime();
             
@@ -583,7 +704,7 @@
         // Hide suggestions when clicking outside
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.search-box')) {
-                hideSuggestions();
+                document.getElementById('suggestions').style.display = 'none';
             }
         });
     </script>
