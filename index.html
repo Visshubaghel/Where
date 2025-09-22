@@ -122,10 +122,17 @@
             transition: background-color 0.2s ease;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-color);
+            user-select: none;
         }
         
         .suggestion-item:hover {
             background-color: var(--suggestion-hover);
+            font-weight: 500;
+        }
+        
+        .suggestion-item:active {
+            background-color: var(--accent-color);
+            color: white;
         }
         
         .suggestion-item:last-child {
@@ -510,37 +517,60 @@
                 return;
             }
             
-            suggestionsDiv.innerHTML = suggestions.map(prof => 
-                `<div class="suggestion-item" data-prof="${prof}">${prof}</div>`
-            ).join('');
+            // Clear previous content and event listeners
+            suggestionsDiv.innerHTML = '';
             
-            // Add click event listeners to each suggestion
-            suggestionsDiv.querySelectorAll('.suggestion-item').forEach(item => {
-                item.addEventListener('click', function(e) {
+            // Create suggestion items
+            suggestions.forEach((prof, index) => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.className = 'suggestion-item';
+                suggestionItem.textContent = prof;
+                suggestionItem.setAttribute('data-prof-index', index);
+                suggestionItem.setAttribute('data-prof-name', prof);
+                
+                // Add multiple event listeners for maximum compatibility
+                suggestionItem.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    console.log('Mousedown on suggestion:', prof);
+                    selectProfessor(prof);
+                });
+                
+                suggestionItem.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    const profName = this.getAttribute('data-prof');
-                    selectProfessor(profName);
+                    console.log('Click on suggestion:', prof);
+                    selectProfessor(prof);
                 });
+                
+                suggestionItem.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    console.log('Touch on suggestion:', prof);
+                    selectProfessor(prof);
+                });
+                
+                suggestionsDiv.appendChild(suggestionItem);
             });
             
             suggestionsDiv.style.display = 'block';
         }
 
         function hideSuggestions() {
-            setTimeout(() => {
-                document.getElementById('suggestions').style.display = 'none';
-            }, 200);
+            const suggestionsDiv = document.getElementById('suggestions');
+            suggestionsDiv.style.display = 'none';
         }
 
         function selectProfessor(profName) {
+            console.log('Selecting professor:', profName); // Debug log
             document.getElementById('professorSearch').value = profName;
-            document.getElementById('suggestions').style.display = 'none';
+            hideSuggestions();
             showProfessorInfo(profName);
         }
 
         function showProfessorInfo(profName) {
+            console.log('Showing info for professor:', profName); // Debug log
+            
             if (!professorsData[profName]) {
+                console.error('Professor not found:', profName); // Debug log
                 showError('Professor not found');
                 return;
             }
@@ -666,17 +696,25 @@
                     const suggestions = searchProfessors(query);
                     showSuggestions(suggestions);
                 } else {
-                    document.getElementById('suggestions').style.display = 'none';
+                    hideSuggestions();
                     document.getElementById('professorCard').style.display = 'none';
                 }
             }, 300);
         });
 
+        document.getElementById('professorSearch').addEventListener('focus', function() {
+            const query = this.value.trim();
+            if (query.length > 0) {
+                const suggestions = searchProfessors(query);
+                showSuggestions(suggestions);
+            }
+        });
+
         document.getElementById('professorSearch').addEventListener('blur', function() {
-            // Delay hiding suggestions to allow click events to fire
+            // Delay hiding suggestions to allow events to fire
             setTimeout(() => {
-                document.getElementById('suggestions').style.display = 'none';
-            }, 150);
+                hideSuggestions();
+            }, 250);
         });
 
         document.getElementById('professorSearch').addEventListener('keydown', function(e) {
@@ -704,7 +742,7 @@
         // Hide suggestions when clicking outside
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.search-box')) {
-                document.getElementById('suggestions').style.display = 'none';
+                hideSuggestions();
             }
         });
     </script>
