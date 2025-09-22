@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor Locator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .search-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        #professorSearch {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #professorSearch:focus {
+            border-color: #667eea;
+        }
+        
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .result-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+        
+        .professor-info {
+            margin-bottom: 30px;
+        }
+        
+        .professor-name {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .status-card.in-class {
+            border-left-color: #dc3545;
+            background: #fef8f8;
+        }
+        
+        .status-card.free {
+            border-left-color: #ffc107;
+            background: #fffef8;
+        }
+        
+        .status-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .location {
+            font-size: 1.1rem;
+            color: #666;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        .class-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .class-time {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+        
+        .class-details {
+            margin-top: 8px;
+            color: #666;
+        }
+        
+        .room-number {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .search-container, .result-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏫 Professor Locator</h1>
+            <p>Find where your professor is right now and their upcoming classes</p>
+        </div>
+        
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="professorSearch" placeholder="Type professor's name..." autocomplete="off">
+                <div class="suggestions" id="suggestions"></div>
+            </div>
+            <button class="search-btn" onclick="searchProfessor()">🔍 Find Professor</button>
+        </div>
+        
+        <div class="result-container" id="resultContainer">
+            <div id="professorResult"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedProfessor = '';
+        let debounceTimer = null;
+
+        // Auto-suggest functionality
+        document.getElementById('professorSearch').addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (query.length > 0) {
+                    fetch(`/api/search_professors?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            showSuggestions(data);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching suggestions:', error);
+                        });
+                } else {
+                    hideSuggestions();
+                }
+            }, 300);
+        });
+
+        function showSuggestions(professors) {
+            const suggestionsDiv = document.getElementById('suggestions');
+            
+            if (professors.length === 0) {
+                hideSuggestions();
+                return;
+            }
+
+            suggestionsDiv.innerHTML = '';
+            professors.forEach(prof => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item';
+                div.textContent = prof;
+                div.onclick = () => selectProfessor(prof);
+                suggestionsDiv.appendChild(div);
+            });
+            
+            suggestionsDiv.style.display = 'block';
+        }
+
+        function hideSuggestions() {
+            document.getElementById('suggestions').style.display = 'none';
+        }
+
+        function selectProfessor(professorName) {
+            selectedProfessor = professorName;
+            document.getElementById('professorSearch').value = professorName;
+            hideSuggestions();
+            searchProfessor();
+        }
+
+        function searchProfessor() {
+            const professorName = selectedProfessor || document.getElementById('professorSearch').value.trim();
+            
+            if (!professorName) {
+                alert('Please enter a professor name');
+                return;
+            }
+
+            const resultContainer = document.getElementById('resultContainer');
+            const resultDiv = document.getElementById('professorResult');
+            
+            resultContainer.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading">🔍 Searching for professor...</div>';
+
+            fetch(`/api/professor_info/${encodeURIComponent(professorName)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Professor not found');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayProfessorInfo(data);
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<div class="error-message">❌ ${error.message}</div>`;
+                });
+        }
+
+        function displayProfessorInfo(data) {
+            const resultDiv = document.getElementById('professorResult');
+            
+            let statusClass = 'free';
+            let statusIcon = '💤';
+            
+            if (data.current_status.status === 'In class') {
+                statusClass = 'in-class';
+                statusIcon = '📚';
+            } else if (data.current_status.status === 'Free/Between classes') {
+                statusClass = 'free';
+                statusIcon = '⏰';
+            }
+
+            let html = `
+                <div class="professor-info">
+                    <h2 class="professor-name">👨‍🏫 ${data.name}</h2>
+                    
+                    <div class="status-card ${statusClass}">
+                        <div class="status-title">${statusIcon} Current Status: ${data.current_status.status}</div>
+                        <div class="location">
+                            📍 Location: ${data.current_status.location || 'Not in scheduled class'}
+                        </div>
+                        ${data.current_status.current_class ? `
+                            <div class="class-details">
+                                <strong>Current Class:</strong> ${data.current_status.current_class.course_title} 
+                                (${data.current_status.current_class.course_code})
+                                <br><strong>Time:</strong> ${data.current_status.current_class.time}
+                                <br><strong>Room:</strong> <span class="room-number">${data.current_status.current_class.room}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            if (data.upcoming_classes.length > 0) {
+                html += `
+                    <div class="section">
+                        <h3 class="section-title">⏭️ Upcoming Classes Today</h3>
+                `;
+                
+                data.upcoming_classes.forEach(cls => {
+                    html += `
+                        <div class="class-item">
+                            <div class="class-time">🕐 ${cls.time}</div>
+                            <div class="class-details">
+                                <strong>${cls.course_title}</strong> (${cls.course_code})
+                                ${cls.section ? `- Section ${cls.section}` : ''}
+                                <br>📍 Room: <span class="room-number">${cls.room}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+
+            if (data.all_classes_today.length > 0) {
+                html += `
+                    <div class="section">
+                        <h3 class="section-title">📅 All Classes Today (${data.current_day})</h3>
+                `;
+                
+                data.all_classes_today.forEach(cls => {
+                    html += `
+                        <div class="class-item">
+                            <div class="class-time">🕐 ${cls.time}</div>
+                            <div class="class-details">
+                                <strong>${cls.course_title}</strong> (${cls.course_code})
+                                ${cls.section ? `- Section ${cls.section}` : ''}
+                                <br>📍 Room: <span class="room-number">${cls.room}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+
+            html += `
+                <div class="section">
+                    <p style="text-align: center; color: #666; font-style: italic;">
+                        🕐 Current time: ${data.current_time} | 📅 ${data.current_day}
+                    </p>
+                </div>
+            `;
+
+            resultDiv.innerHTML = html;
+        }
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.search-box')) {
+                hideSuggestions();
+            }
+        });
+
+        // Handle Enter key in search box
+        document.getElementById('professorSearch').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                hideSuggestions();
+                searchProfessor();
+            }
+        });
+    </script>
+</body>
+</html>

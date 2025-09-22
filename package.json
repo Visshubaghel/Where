@@ -1,0 +1,25 @@
+{
+  "name": "professor-locator",
+  "version": "1.0.0",
+  "description": "A web application to find professor locations and schedules in real-time",
+  "main": "api/index.py",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "prepare": "python prepare_deployment.py",
+    "test": "python test_deployment.py"
+  },
+  "keywords": [
+    "education",
+    "schedule",
+    "professor",
+    "timetable",
+    "flask",
+    "vercel"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  }
+}

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ professor_name }} - Professor Details</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .back-link:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .professor-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .professor-name {
+            font-size: 2.2rem;
+            color: #333;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 5px;
+        }
+        
+        .status-card.in-class {
+            border-left-color: #dc3545;
+            background: #fef8f8;
+        }
+        
+        .status-card.free {
+            border-left-color: #ffc107;
+            background: #fffef8;
+        }
+        
+        .status-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .location {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .current-class-details {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.4rem;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 8px;
+        }
+        
+        .class-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .class-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .class-time {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+        
+        .class-details {
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .room-number {
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .course-code {
+            background: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .no-classes {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .time-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .refresh-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: #218838;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .professor-card {
+                padding: 20px;
+            }
+            
+            .professor-name {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Search</a>
+        
+        <div class="professor-card">
+            <h1 class="professor-name">👨‍🏫 {{ professor_name }}</h1>
+            
+            <div class="time-info">
+                🕐 Current Time: {{ current_time }} | 📅 {{ current_day }}
+                <button class="refresh-btn" onclick="window.location.reload()">🔄 Refresh</button>
+            </div>
+            
+            {% if current_status %}
+            <div class="status-card {% if current_status.status == 'In class' %}in-class{% elif current_status.status == 'Free/Between classes' %}free{% endif %}">
+                <div class="status-title">
+                    {% if current_status.status == 'In class' %}📚{% elif current_status.status == 'Free/Between classes' %}⏰{% else %}💤{% endif %}
+                    Current Status: {{ current_status.status }}
+                </div>
+                <div class="location">📍 Location: {{ current_status.location or 'Not in scheduled class' }}</div>
+                
+                {% if current_status.current_class %}
+                <div class="current-class-details">
+                    <strong>📖 Current Class:</strong><br>
+                    <strong>{{ current_status.current_class.course_title }}</strong> 
+                    <span class="course-code">{{ current_status.current_class.course_code }}</span>
+                    {% if current_status.current_class.section %}
+                        - Section {{ current_status.current_class.section }}
+                    {% endif %}
+                    <br><strong>⏰ Time:</strong> {{ current_status.current_class.time }}
+                    <br><strong>🏠 Room:</strong> <span class="room-number">{{ current_status.current_class.room }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            {% if upcoming_classes %}
+            <div class="section">
+                <h2 class="section-title">⏭️ Upcoming Classes Today</h2>
+                {% for class in upcoming_classes %}
+                <div class="class-item">
+                    <div class="class-time">🕐 {{ class.time }}</div>
+                    <div class="class-details">
+                        <strong>{{ class.course_title }}</strong> 
+                        <span class="course-code">{{ class.course_code }}</span>
+                        {% if class.section %}- Section {{ class.section }}{% endif %}
+                        <br>📍 Room: <span class="room-number">{{ class.room }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if all_classes_today %}
+            <div class="section">
+                <h2 class="section-title">📅 Complete Schedule for {{ current_day }}</h2>
+                {% for class in all_classes_today %}
+                <div class="class-item">
+                    <div class="class-time">🕐 {{ class.time }}</div>
+                    <div class="class-details">
+                        <strong>{{ class.course_title }}</strong> 
+                        <span class="course-code">{{ class.course_code }}</span>
+                        {% if class.section %}- Section {{ class.section }}{% endif %}
+                        <br>📍 Room: <span class="room-number">{{ class.room }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="section">
+                <div class="no-classes">
+                    📅 No classes scheduled for {{ current_day }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

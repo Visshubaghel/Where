@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor Locator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .search-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .suggestion-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .professor-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .professor-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .status-section {
+            margin-bottom: 20px;
+        }
+        
+        .status-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .status-info {
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-free {
+            background-color: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        
+        .status-busy {
+            background-color: #ffeaa7;
+            border-left-color: #f39c12;
+        }
+        
+        .status-no-class {
+            background-color: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+        
+        .class-item {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .class-time {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .class-details {
+            margin-top: 5px;
+            color: #666;
+        }
+        
+        .current-time {
+            text-align: center;
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #c62828;
+            margin-top: 15px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-style: italic;
+        }
+
+        .time-display {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .day-display {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+        
+        .current-time-display {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 Professor Locator</h1>
+            <p>Find your professors instantly - Know where they are, when they're free</p>
+        </div>
+
+        <div class="time-display">
+            <div class="day-display" id="currentDay">Loading...</div>
+            <div class="current-time-display" id="currentTime">Loading...</div>
+        </div>
+        
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" 
+                       class="search-input" 
+                       id="professorSearch" 
+                       placeholder="🔍 Search for a professor (e.g., 'John Smith', 'Dr. Johnson')..."
+                       autocomplete="off">
+                <div class="suggestions" id="suggestions"></div>
+            </div>
+        </div>
+        
+        <div class="professor-card" id="professorCard">
+            <div class="professor-name" id="professorName"></div>
+            
+            <div class="status-section">
+                <div class="status-title">📍 Current Status</div>
+                <div class="status-info" id="currentStatus"></div>
+            </div>
+            
+            <div class="status-section" id="upcomingSection" style="display: none;">
+                <div class="status-title">⏰ Upcoming Classes Today</div>
+                <div id="upcomingClasses"></div>
+            </div>
+            
+            <div class="status-section" id="todayScheduleSection" style="display: none;">
+                <div class="status-title">📅 Today's Complete Schedule</div>
+                <div id="todaySchedule"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let professorsData = {};
+        let debounceTimer;
+
+        // Load professors data
+        async function loadProfessorsData() {
+            try {
+                const response = await fetch('./structured_data.json');
+                const data = await response.json();
+                professorsData = data.professors;
+                console.log('Professors data loaded:', Object.keys(professorsData).length, 'professors');
+            } catch (error) {
+                console.error('Error loading professors data:', error);
+                showError('Failed to load professors data. Please check if structured_data.json is available.');
+            }
+        }
+
+        // Update current time and day
+        function updateCurrentTime() {
+            const now = new Date();
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const day = days[now.getDay()];
+            const time = now.toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            document.getElementById('currentDay').textContent = day;
+            document.getElementById('currentTime').textContent = time;
+        }
+
+        // Utility functions
+        function getCurrentDay() {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return days[new Date().getDay()];
+        }
+
+        function getCurrentTime() {
+            return new Date().toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+
+        function isTimeInSlot(currentTime, timeSlot) {
+            if (!timeSlot || !timeSlot.includes('-')) {
+                return false;
+            }
+            
+            try {
+                const [startTime, endTime] = timeSlot.split('-');
+                const [startHour, startMin] = startTime.split(':').map(Number);
+                const [endHour, endMin] = endTime.split(':').map(Number);
+                const [currentHour, currentMin] = currentTime.split(':').map(Number);
+                
+                const startTotalMin = startHour * 60 + startMin;
+                const endTotalMin = endHour * 60 + endMin;
+                const currentTotalMin = currentHour * 60 + currentMin;
+                
+                return startTotalMin <= currentTotalMin && currentTotalMin <= endTotalMin;
+            } catch {
+                return false;
+            }
+        }
+
+        function getProfessorCurrentLocation(profName) {
+            if (!professorsData[profName]) {
+                return null;
+            }
+            
+            const currentDay = getCurrentDay();
+            const currentTime = getCurrentTime();
+            const profData = professorsData[profName];
+            
+            if (!profData.schedule || !profData.schedule[currentDay]) {
+                return {
+                    status: 'No classes today',
+                    current_class: null,
+                    location: null
+                };
+            }
+            
+            // Find current class
+            for (const classInfo of profData.schedule[currentDay]) {
+                if (isTimeInSlot(currentTime, classInfo.time)) {
+                    return {
+                        status: 'In class',
+                        current_class: classInfo,
+                        location: classInfo.room
+                    };
+                }
+            }
+            
+            return {
+                status: 'Free/Between classes',
+                current_class: null,
+                location: 'Not in scheduled class'
+            };
+        }
+
+        function getUpcomingClasses(profName, limit = 3) {
+            if (!professorsData[profName]) {
+                return [];
+            }
+            
+            const currentDay = getCurrentDay();
+            const currentTime = getCurrentTime();
+            const [currentHour, currentMin] = currentTime.split(':').map(Number);
+            const currentTotalMin = currentHour * 60 + currentMin;
+            
+            const profData = professorsData[profName];
+            
+            if (!profData.schedule || !profData.schedule[currentDay]) {
+                return [];
+            }
+            
+            const upcoming = [];
+            for (const classInfo of profData.schedule[currentDay]) {
+                if (!classInfo.time || !classInfo.time.includes('-')) {
+                    continue;
+                }
+                
+                try {
+                    const startTime = classInfo.time.split('-')[0];
+                    const [startHour, startMin] = startTime.split(':').map(Number);
+                    const startTotalMin = startHour * 60 + startMin;
+                    
+                    if (startTotalMin > currentTotalMin) {
+                        upcoming.push(classInfo);
+                    }
+                } catch {
+                    continue;
+                }
+            }
+            
+            return upcoming.slice(0, limit);
+        }
+
+        function searchProfessors(query) {
+            if (!query) {
+                return Object.keys(professorsData).slice(0, 10);
+            }
+            
+            query = query.toLowerCase();
+            const matches = [];
+            
+            for (const profName of Object.keys(professorsData)) {
+                const profLower = profName.toLowerCase();
+                
+                if (query === profLower) {
+                    matches.unshift(profName);
+                } else if (profLower.startsWith(query)) {
+                    matches.push(profName);
+                } else if (profLower.includes(query)) {
+                    matches.push(profName);
+                } else if (profLower.split(' ').some(word => word.startsWith(query))) {
+                    matches.push(profName);
+                }
+            }
+            
+            return matches.slice(0, 10);
+        }
+
+        function showSuggestions(suggestions) {
+            const suggestionsDiv = document.getElementById('suggestions');
+            
+            if (suggestions.length === 0) {
+                suggestionsDiv.style.display = 'none';
+                return;
+            }
+            
+            suggestionsDiv.innerHTML = suggestions.map(prof => 
+                `<div class="suggestion-item" onclick="selectProfessor('${prof}')">${prof}</div>`
+            ).join('');
+            
+            suggestionsDiv.style.display = 'block';
+        }
+
+        function hideSuggestions() {
+            setTimeout(() => {
+                document.getElementById('suggestions').style.display = 'none';
+            }, 200);
+        }
+
+        function selectProfessor(profName) {
+            document.getElementById('professorSearch').value = profName;
+            hideSuggestions();
+            showProfessorInfo(profName);
+        }
+
+        function showProfessorInfo(profName) {
+            if (!professorsData[profName]) {
+                showError('Professor not found');
+                return;
+            }
+            
+            const currentLocation = getProfessorCurrentLocation(profName);
+            const upcomingClasses = getUpcomingClasses(profName);
+            const allClassesToday = professorsData[profName].schedule[getCurrentDay()] || [];
+            
+            // Update professor name
+            document.getElementById('professorName').textContent = profName;
+            
+            // Update current status
+            const statusDiv = document.getElementById('currentStatus');
+            let statusClass = 'status-info ';
+            let statusText = '';
+            
+            if (currentLocation.status === 'In class') {
+                statusClass += 'status-busy';
+                statusText = `🔴 Currently in class: ${currentLocation.current_class.subject} in ${currentLocation.current_class.room}`;
+            } else if (currentLocation.status === 'Free/Between classes') {
+                statusClass += 'status-free';
+                statusText = '🟢 Currently free / Between classes';
+            } else {
+                statusClass += 'status-no-class';
+                statusText = '📅 No classes scheduled for today';
+            }
+            
+            statusDiv.className = statusClass;
+            statusDiv.innerHTML = statusText;
+            
+            // Update upcoming classes
+            const upcomingSection = document.getElementById('upcomingSection');
+            const upcomingDiv = document.getElementById('upcomingClasses');
+            
+            if (upcomingClasses.length > 0) {
+                upcomingDiv.innerHTML = upcomingClasses.map(classInfo => `
+                    <div class="class-item">
+                        <div class="class-time">${classInfo.time}</div>
+                        <div class="class-details">
+                            <strong>${classInfo.subject}</strong><br>
+                            📍 Room: ${classInfo.room}<br>
+                            👥 Section: ${classInfo.section || 'N/A'}
+                        </div>
+                    </div>
+                `).join('');
+                upcomingSection.style.display = 'block';
+            } else {
+                upcomingSection.style.display = 'none';
+            }
+            
+            // Update today's schedule
+            const todaySection = document.getElementById('todayScheduleSection');
+            const todayDiv = document.getElementById('todaySchedule');
+            
+            if (allClassesToday.length > 0) {
+                todayDiv.innerHTML = allClassesToday.map(classInfo => `
+                    <div class="class-item">
+                        <div class="class-time">${classInfo.time}</div>
+                        <div class="class-details">
+                            <strong>${classInfo.subject}</strong><br>
+                            📍 Room: ${classInfo.room}<br>
+                            👥 Section: ${classInfo.section || 'N/A'}
+                        </div>
+                    </div>
+                `).join('');
+                todaySection.style.display = 'block';
+            } else {
+                todaySection.style.display = 'none';
+            }
+            
+            // Show the professor card
+            document.getElementById('professorCard').style.display = 'block';
+        }
+
+        function showError(message) {
+            const professorCard = document.getElementById('professorCard');
+            professorCard.innerHTML = `<div class="error-message">${message}</div>`;
+            professorCard.style.display = 'block';
+        }
+
+        // Event listeners
+        document.getElementById('professorSearch').addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (query.length > 0) {
+                    const suggestions = searchProfessors(query);
+                    showSuggestions(suggestions);
+                } else {
+                    hideSuggestions();
+                    document.getElementById('professorCard').style.display = 'none';
+                }
+            }, 300);
+        });
+
+        document.getElementById('professorSearch').addEventListener('blur', hideSuggestions);
+
+        document.getElementById('professorSearch').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) {
+                    const suggestions = searchProfessors(query);
+                    if (suggestions.length > 0) {
+                        selectProfessor(suggestions[0]);
+                    }
+                }
+            }
+        });
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProfessorsData();
+            updateCurrentTime();
+            
+            // Update time every minute
+            setInterval(updateCurrentTime, 60000);
+        });
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-box')) {
+                hideSuggestions();
+            }
+        });
+    </script>
+</body>
+</html>
