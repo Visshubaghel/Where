@@ -295,6 +295,80 @@
         [data-theme="dark"] .theme-toggle:hover {
             background: rgba(0,0,0,0.4);
         }
+
+        .search-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .search-tab {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            background: transparent;
+            color: var(--text-color);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .search-tab:hover {
+            border-color: var(--accent-color);
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .search-tab.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .subject-results {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+        }
+        
+        .subject-class-item {
+            background: var(--class-item-bg);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--accent-color);
+        }
+        
+        .subject-class-time {
+            font-weight: 600;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        
+        .subject-class-professor {
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 5px;
+        }
+        
+        .subject-class-details {
+            color: var(--text-light);
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 <body>
@@ -314,13 +388,27 @@
         </div>
         
         <div class="search-container">
-            <div class="search-box">
+            <div class="search-tabs">
+                <button class="search-tab active" onclick="switchTab('professor')">👨‍🏫 Professor Search</button>
+                <button class="search-tab" onclick="switchTab('subject')">📚 Subject Search</button>
+            </div>
+            
+            <div class="search-box" id="professorSearchBox">
                 <input type="text" 
                        class="search-input" 
                        id="professorSearch" 
                        placeholder="🔍 Search for a professor (e.g., 'John Smith', 'Dr. Johnson')..."
                        autocomplete="off">
-                <div class="suggestions" id="suggestions"></div>
+                <div class="suggestions" id="professorSuggestions"></div>
+            </div>
+            
+            <div class="search-box" id="subjectSearchBox" style="display: none;">
+                <input type="text" 
+                       class="search-input" 
+                       id="subjectSearch" 
+                       placeholder="🔍 Search for a subject (e.g., 'Mathematics', 'Physics', 'Chemistry')..."
+                       autocomplete="off">
+                <div class="suggestions" id="subjectSuggestions"></div>
             </div>
         </div>
         
@@ -342,22 +430,55 @@
                 <div id="todaySchedule"></div>
             </div>
         </div>
+        
+        <div class="subject-results" id="subjectResults" style="display: none;">
+            <div class="results-title" id="subjectResultsTitle"></div>
+            <div id="subjectClassesList"></div>
+        </div>
     </div>
 
     <script>
         let professorsData = {};
+        let coursesData = {};
         let debounceTimer;
+        let currentSearchMode = 'professor';
 
-        // Load professors data
+        // Load professors and courses data
         async function loadProfessorsData() {
             try {
                 const response = await fetch('./structured_data.json');
                 const data = await response.json();
                 professorsData = data.professors;
-                console.log('Professors data loaded:', Object.keys(professorsData).length, 'professors');
+                coursesData = data.courses;
+                console.log('Data loaded:', Object.keys(professorsData).length, 'professors');
+                console.log('Courses loaded:', Object.keys(coursesData).length, 'courses');
             } catch (error) {
-                console.error('Error loading professors data:', error);
-                showError('Failed to load professors data. Please check if structured_data.json is available.');
+                console.error('Error loading data:', error);
+                showError('Failed to load data. Please check if structured_data.json is available.');
+            }
+        }
+
+        // Tab switching functionality
+        function switchTab(mode) {
+            currentSearchMode = mode;
+            
+            // Update tab appearance
+            document.querySelectorAll('.search-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[onclick="switchTab('${mode}')"]`).classList.add('active');
+            
+            // Show/hide search boxes
+            if (mode === 'professor') {
+                document.getElementById('professorSearchBox').style.display = 'block';
+                document.getElementById('subjectSearchBox').style.display = 'none';
+                document.getElementById('professorCard').style.display = 'none';
+                document.getElementById('subjectResults').style.display = 'none';
+            } else {
+                document.getElementById('professorSearchBox').style.display = 'none';
+                document.getElementById('subjectSearchBox').style.display = 'block';
+                document.getElementById('professorCard').style.display = 'none';
+                document.getElementById('subjectResults').style.display = 'none';
             }
         }
 
@@ -509,8 +630,102 @@
             return matches.slice(0, 10);
         }
 
-        function showSuggestions(suggestions) {
-            const suggestionsDiv = document.getElementById('suggestions');
+        function searchSubjects(query) {
+            if (!query) {
+                return getUniqueSubjects().slice(0, 10);
+            }
+            
+            query = query.toLowerCase().trim();
+            const subjects = getUniqueSubjects();
+            const exactMatches = [];
+            const startMatches = [];
+            const wordMatches = [];
+            
+            for (const subject of subjects) {
+                const subjectLower = subject.toLowerCase().trim();
+                
+                // 1. Exact match (highest priority)
+                if (query === subjectLower) {
+                    exactMatches.push(subject);
+                }
+                // 2. Starts with query
+                else if (subjectLower.startsWith(query)) {
+                    startMatches.push(subject);
+                }
+                // 3. For multi-word queries, use exact phrase matching
+                else if (query.includes(' ')) {
+                    const queryWords = query.split(/\s+/).filter(word => word.length > 0);
+                    const queryPhrase = queryWords.join(' ');
+                    
+                    // Check if the subject contains the exact query phrase at word boundaries
+                    if (subjectLower.includes(queryPhrase)) {
+                        const phraseIndex = subjectLower.indexOf(queryPhrase);
+                        if (phraseIndex !== -1) {
+                            const beforeChar = phraseIndex > 0 ? subjectLower[phraseIndex - 1] : ' ';
+                            const afterChar = phraseIndex + queryPhrase.length < subjectLower.length ? 
+                                             subjectLower[phraseIndex + queryPhrase.length] : ' ';
+                            
+                            if ((beforeChar === ' ' || phraseIndex === 0) && 
+                                (afterChar === ' ' || phraseIndex + queryPhrase.length === subjectLower.length)) {
+                                wordMatches.push(subject);
+                            }
+                        }
+                    }
+                }
+                // 4. Single word that starts with query (less strict for suggestions)
+                else if (!query.includes(' ') && query.length > 2) {
+                    const subjectWords = subjectLower.split(' ');
+                    if (subjectWords.some(word => word.startsWith(query))) {
+                        wordMatches.push(subject);
+                    }
+                }
+            }
+            
+            // Combine results with priority order
+            return [...exactMatches, ...startMatches, ...wordMatches].slice(0, 10);
+        }
+
+        function getUniqueSubjects() {
+            const subjects = new Set();
+            
+            // Get subjects from professor schedules
+            for (const prof of Object.values(professorsData)) {
+                if (prof.schedule) {
+                    for (const day of Object.values(prof.schedule)) {
+                        for (const classInfo of day) {
+                            if (classInfo.course_title) {
+                                // Clean up the subject name (remove \n and extra spaces)
+                                const cleanSubject = classInfo.course_title.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+                                subjects.add(cleanSubject);
+                            }
+                            // Also add course codes if available
+                            if (classInfo.course_code) {
+                                subjects.add(classInfo.course_code);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Get subjects from courses data as well
+            for (const course of Object.values(coursesData)) {
+                if (course.course_title) {
+                    const cleanSubject = course.course_title.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+                    subjects.add(cleanSubject);
+                }
+                if (course.course_number) {
+                    subjects.add(course.course_number);
+                }
+                if (course.course_code) {
+                    subjects.add(course.course_code);
+                }
+            }
+            
+            return Array.from(subjects).filter(s => s && s.length > 0).sort();
+        }
+
+        function showSuggestions(suggestions, containerId) {
+            const suggestionsDiv = document.getElementById(containerId);
             
             if (suggestions.length === 0) {
                 suggestionsDiv.style.display = 'none';
@@ -521,31 +736,43 @@
             suggestionsDiv.innerHTML = '';
             
             // Create suggestion items
-            suggestions.forEach((prof, index) => {
+            suggestions.forEach((item, index) => {
                 const suggestionItem = document.createElement('div');
                 suggestionItem.className = 'suggestion-item';
-                suggestionItem.textContent = prof;
-                suggestionItem.setAttribute('data-prof-index', index);
-                suggestionItem.setAttribute('data-prof-name', prof);
+                suggestionItem.textContent = item;
+                suggestionItem.setAttribute('data-item-index', index);
+                suggestionItem.setAttribute('data-item-name', item);
                 
                 // Add multiple event listeners for maximum compatibility
                 suggestionItem.addEventListener('mousedown', function(e) {
                     e.preventDefault();
-                    console.log('Mousedown on suggestion:', prof);
-                    selectProfessor(prof);
+                    console.log('Mousedown on suggestion:', item);
+                    if (currentSearchMode === 'professor') {
+                        selectProfessor(item);
+                    } else {
+                        selectSubject(item);
+                    }
                 });
                 
                 suggestionItem.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Click on suggestion:', prof);
-                    selectProfessor(prof);
+                    console.log('Click on suggestion:', item);
+                    if (currentSearchMode === 'professor') {
+                        selectProfessor(item);
+                    } else {
+                        selectSubject(item);
+                    }
                 });
                 
                 suggestionItem.addEventListener('touchstart', function(e) {
                     e.preventDefault();
-                    console.log('Touch on suggestion:', prof);
-                    selectProfessor(prof);
+                    console.log('Touch on suggestion:', item);
+                    if (currentSearchMode === 'professor') {
+                        selectProfessor(item);
+                    } else {
+                        selectSubject(item);
+                    }
                 });
                 
                 suggestionsDiv.appendChild(suggestionItem);
@@ -554,16 +781,25 @@
             suggestionsDiv.style.display = 'block';
         }
 
-        function hideSuggestions() {
-            const suggestionsDiv = document.getElementById('suggestions');
+        function hideSuggestions(containerId) {
+            const suggestionsDiv = document.getElementById(containerId);
             suggestionsDiv.style.display = 'none';
         }
 
         function selectProfessor(profName) {
             console.log('Selecting professor:', profName); // Debug log
             document.getElementById('professorSearch').value = profName;
-            hideSuggestions();
+            hideSuggestions('professorSuggestions');
+            document.getElementById('subjectResults').style.display = 'none';
             showProfessorInfo(profName);
+        }
+
+        function selectSubject(subjectName) {
+            console.log('Selecting subject:', subjectName); // Debug log
+            document.getElementById('subjectSearch').value = subjectName;
+            hideSuggestions('subjectSuggestions');
+            document.getElementById('professorCard').style.display = 'none';
+            showSubjectInfo(subjectName);
         }
 
         function showProfessorInfo(profName) {
@@ -589,7 +825,7 @@
             
             if (currentLocation.status === 'In class') {
                 statusClass += 'status-busy';
-                statusText = `🔴 Currently in class: ${currentLocation.current_class.subject} in ${currentLocation.current_class.room}`;
+                statusText = `🔴 Currently in class: ${currentLocation.current_class.course_title || 'Subject not specified'} in ${currentLocation.current_class.room}`;
             } else if (currentLocation.status === 'Free/Between classes') {
                 statusClass += 'status-free';
                 statusText = '🟢 Currently free / Between classes';
@@ -610,7 +846,7 @@
                     <div class="class-item">
                         <div class="class-time">${classInfo.time}</div>
                         <div class="class-details">
-                            <strong>${classInfo.subject}</strong><br>
+                            <strong>${classInfo.course_title || 'Subject not specified'}</strong><br>
                             📍 Room: ${classInfo.room}<br>
                             👥 Section: ${classInfo.section || 'N/A'}
                         </div>
@@ -630,7 +866,7 @@
                     <div class="class-item">
                         <div class="class-time">${classInfo.time}</div>
                         <div class="class-details">
-                            <strong>${classInfo.subject}</strong><br>
+                            <strong>${classInfo.course_title || 'Subject not specified'}</strong><br>
                             📍 Room: ${classInfo.room}<br>
                             👥 Section: ${classInfo.section || 'N/A'}
                         </div>
@@ -643,6 +879,260 @@
             
             // Show the professor card
             document.getElementById('professorCard').style.display = 'block';
+        }
+
+        function showSubjectInfo(subjectName) {
+            console.log('Showing info for subject:', subjectName);
+            
+            const currentDay = getCurrentDay();
+            console.log('Current day:', currentDay);
+            const subjectClasses = [];
+            
+            // Search through all professors for classes of this subject today
+            for (const [profName, profData] of Object.entries(professorsData)) {
+                if (profData.schedule && profData.schedule[currentDay]) {
+                    for (const classInfo of profData.schedule[currentDay]) {
+                        if (classInfo.course_title) {
+                            const cleanSubject = classInfo.course_title.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+                            console.log('Checking class:', cleanSubject, 'against search:', subjectName);
+                            
+                            // VERY precise matching to avoid false positives
+                            const searchLower = subjectName.toLowerCase().trim();
+                            const subjectLower = cleanSubject.toLowerCase().trim();
+                            
+                            let isMatch = false;
+                            
+                            // 1. Exact match (highest priority)
+                            if (subjectLower === searchLower) {
+                                isMatch = true;
+                                console.log('Exact match found:', cleanSubject);
+                            }
+                            // 2. For multi-word searches like "DIGITAL DESIGN", only match if the exact phrase appears
+                            else if (searchLower.includes(' ')) {
+                                // Split and clean both search and subject
+                                const searchWords = searchLower.split(/\s+/).filter(word => word.length > 0);
+                                const subjectWords = subjectLower.split(/\s+/).filter(word => word.length > 0);
+                                
+                                // Check if the exact search phrase appears in the subject
+                                const searchPhrase = searchWords.join(' ');
+                                
+                                // Only match if the subject contains the exact search phrase
+                                // For "DIGITAL DESIGN", this will match "DIGITAL DESIGN" but not "ANALOG & DIGITAL VLSI DES"
+                                if (subjectLower.includes(searchPhrase)) {
+                                    // Additional check: make sure it's not just a substring match
+                                    // The search phrase should be either the whole subject or a complete phrase within it
+                                    const phraseIndex = subjectLower.indexOf(searchPhrase);
+                                    if (phraseIndex !== -1) {
+                                        const beforeChar = phraseIndex > 0 ? subjectLower[phraseIndex - 1] : ' ';
+                                        const afterChar = phraseIndex + searchPhrase.length < subjectLower.length ? 
+                                                         subjectLower[phraseIndex + searchPhrase.length] : ' ';
+                                        
+                                        // Match if the phrase is at word boundaries
+                                        if ((beforeChar === ' ' || phraseIndex === 0) && 
+                                            (afterChar === ' ' || phraseIndex + searchPhrase.length === subjectLower.length)) {
+                                            isMatch = true;
+                                            console.log('Exact phrase match found:', cleanSubject);
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (isMatch) {
+                                console.log('Found matching class:', cleanSubject, 'by professor:', profName);
+                                subjectClasses.push({
+                                    ...classInfo,
+                                    professor: profName,
+                                    clean_subject: cleanSubject
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            
+            console.log('Total classes found (before deduplication):', subjectClasses.length);
+            
+            // Remove duplicates based on professor, time, room, and section
+            const uniqueClasses = [];
+            const seen = new Set();
+            
+            for (const classInfo of subjectClasses) {
+                // Create a unique key based on professor, time, room, section, and subject
+                const uniqueKey = `${classInfo.professor}-${classInfo.time}-${classInfo.room}-${classInfo.section}-${classInfo.clean_subject}`;
+                
+                if (!seen.has(uniqueKey)) {
+                    seen.add(uniqueKey);
+                    uniqueClasses.push(classInfo);
+                } else {
+                    console.log('Removing duplicate class:', classInfo.clean_subject, 'by', classInfo.professor);
+                }
+            }
+            
+            console.log('Total classes found (after deduplication):', uniqueClasses.length);
+            
+            // Sort classes by time
+            uniqueClasses.sort((a, b) => {
+                const timeA = a.time ? a.time.split('-')[0] : '99:99';
+                const timeB = b.time ? b.time.split('-')[0] : '99:99';
+                return timeA.localeCompare(timeB);
+            });
+            
+            // Update display
+            const titleDiv = document.getElementById('subjectResultsTitle');
+            const classesDiv = document.getElementById('subjectClassesList');
+            
+            if (uniqueClasses.length > 0) {
+                titleDiv.textContent = `📚 Classes for "${subjectName}" on ${currentDay} (${uniqueClasses.length} found)`;
+                
+                classesDiv.innerHTML = uniqueClasses.map(classInfo => {
+                    // Determine class type based on section
+                    let classType = '';
+                    let classTypeIcon = '';
+                    if (classInfo.section) {
+                        const section = classInfo.section.toUpperCase();
+                        if (section.startsWith('L')) {
+                            classType = 'Lecture';
+                            classTypeIcon = '📖';
+                        } else if (section.startsWith('T')) {
+                            classType = 'Tutorial';
+                            classTypeIcon = '💭';
+                        } else if (section.startsWith('P')) {
+                            classType = 'Lab/Practical';
+                            classTypeIcon = '🔬';
+                        } else {
+                            classType = 'Unknown';
+                            classTypeIcon = '❓';
+                        }
+                    }
+                    
+                    return `
+                        <div class="subject-class-item">
+                            <div class="subject-class-time">${classInfo.time || 'Time not specified'}</div>
+                            <div class="subject-class-professor">👨‍🏫 Professor: ${classInfo.professor}</div>
+                            <div class="subject-class-details">
+                                📚 Subject: ${classInfo.clean_subject}<br>
+                                ${classTypeIcon} Type: ${classType}<br>
+                                📍 Room: ${classInfo.room || 'Room not specified'}<br>
+                                👥 Section: ${classInfo.section || 'N/A'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                // Let's find what days this subject is available
+                const allDaysWithSubject = [];
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                
+                for (const day of days) {
+                    const dayClasses = [];
+                    for (const [profName, profData] of Object.entries(professorsData)) {
+                        if (profData.schedule && profData.schedule[day]) {
+                            for (const classInfo of profData.schedule[day]) {
+                                if (classInfo.course_title) {
+                                    const cleanSubject = classInfo.course_title.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+                                    
+                                    // Use same precise matching logic as above
+                                    const searchLower = subjectName.toLowerCase().trim();
+                                    const subjectLower = cleanSubject.toLowerCase().trim();
+                                    
+                                    let isMatch = false;
+                                    
+                                    // 1. Exact match
+                                    if (subjectLower === searchLower) {
+                                        isMatch = true;
+                                    }
+                                    // 2. For multi-word searches, only match exact phrase at word boundaries
+                                    else if (searchLower.includes(' ')) {
+                                        const searchWords = searchLower.split(/\s+/).filter(word => word.length > 0);
+                                        const searchPhrase = searchWords.join(' ');
+                                        
+                                        if (subjectLower.includes(searchPhrase)) {
+                                            const phraseIndex = subjectLower.indexOf(searchPhrase);
+                                            if (phraseIndex !== -1) {
+                                                const beforeChar = phraseIndex > 0 ? subjectLower[phraseIndex - 1] : ' ';
+                                                const afterChar = phraseIndex + searchPhrase.length < subjectLower.length ? 
+                                                                 subjectLower[phraseIndex + searchPhrase.length] : ' ';
+                                                
+                                                if ((beforeChar === ' ' || phraseIndex === 0) && 
+                                                    (afterChar === ' ' || phraseIndex + searchPhrase.length === subjectLower.length)) {
+                                                    isMatch = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (isMatch) {
+                                        dayClasses.push({
+                                            professor: profName,
+                                            time: classInfo.time,
+                                            room: classInfo.room,
+                                            section: classInfo.section
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Remove duplicates for this day
+                    if (dayClasses.length > 0) {
+                        const uniqueDayClasses = [];
+                        const daySeenClasses = new Set();
+                        
+                        for (const dayClass of dayClasses) {
+                            const uniqueKey = `${dayClass.professor}-${dayClass.time}-${dayClass.room}-${dayClass.section}`;
+                            if (!daySeenClasses.has(uniqueKey)) {
+                                daySeenClasses.add(uniqueKey);
+                                uniqueDayClasses.push(dayClass);
+                            }
+                        }
+                        
+                        if (uniqueDayClasses.length > 0) {
+                            allDaysWithSubject.push({
+                                day: day,
+                                classes: uniqueDayClasses
+                            });
+                        }
+                    }
+                }
+                
+                titleDiv.textContent = `📚 No classes found for "${subjectName}" on ${currentDay}`;
+                
+                if (allDaysWithSubject.length > 0) {
+                    classesDiv.innerHTML = `
+                        <div class="no-results">
+                            <p><strong>"${subjectName}" is scheduled on these days:</strong></p>
+                            ${allDaysWithSubject.map(dayInfo => `
+                                <div style="margin: 15px 0; padding: 10px; background: var(--class-item-bg); border-radius: 8px;">
+                                    <strong>📅 ${dayInfo.day}</strong>
+                                    ${dayInfo.classes.map(cls => `
+                                        <div style="margin: 5px 0; padding-left: 15px;">
+                                            🕐 ${cls.time} | 👨‍🏫 ${cls.professor} | 📍 ${cls.room} | 👥 ${cls.section || 'N/A'}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `).join('')}
+                            <p style="margin-top: 15px;"><em>Try checking these days for "${subjectName}" classes!</em></p>
+                        </div>
+                    `;
+                } else {
+                    classesDiv.innerHTML = `
+                        <div class="no-results">
+                            <p>No classes found for "${subjectName}" on any day.</p>
+                            <p><strong>Suggestions:</strong></p>
+                            <ul style="text-align: left; margin-top: 10px;">
+                                <li>Check the spelling of the subject name</li>
+                                <li>Try searching for course codes (like "CS F215", "ECE F215")</li>
+                                <li>Search for keywords like "DESIGN", "DIGITAL", etc.</li>
+                                <li>Try the professor search to find specific instructors</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Show the subject results
+            document.getElementById('subjectResults').style.display = 'block';
         }
 
         function showError(message) {
@@ -694,9 +1184,9 @@
             debounceTimer = setTimeout(() => {
                 if (query.length > 0) {
                     const suggestions = searchProfessors(query);
-                    showSuggestions(suggestions);
+                    showSuggestions(suggestions, 'professorSuggestions');
                 } else {
-                    hideSuggestions();
+                    hideSuggestions('professorSuggestions');
                     document.getElementById('professorCard').style.display = 'none';
                 }
             }, 300);
@@ -706,14 +1196,42 @@
             const query = this.value.trim();
             if (query.length > 0) {
                 const suggestions = searchProfessors(query);
-                showSuggestions(suggestions);
+                showSuggestions(suggestions, 'professorSuggestions');
             }
         });
 
         document.getElementById('professorSearch').addEventListener('blur', function() {
-            // Delay hiding suggestions to allow events to fire
             setTimeout(() => {
-                hideSuggestions();
+                hideSuggestions('professorSuggestions');
+            }, 250);
+        });
+
+        document.getElementById('subjectSearch').addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (query.length > 0) {
+                    const suggestions = searchSubjects(query);
+                    showSuggestions(suggestions, 'subjectSuggestions');
+                } else {
+                    hideSuggestions('subjectSuggestions');
+                    document.getElementById('subjectResults').style.display = 'none';
+                }
+            }, 300);
+        });
+
+        document.getElementById('subjectSearch').addEventListener('focus', function() {
+            const query = this.value.trim();
+            if (query.length > 0) {
+                const suggestions = searchSubjects(query);
+                showSuggestions(suggestions, 'subjectSuggestions');
+            }
+        });
+
+        document.getElementById('subjectSearch').addEventListener('blur', function() {
+            setTimeout(() => {
+                hideSuggestions('subjectSuggestions');
             }, 250);
         });
 
@@ -724,6 +1242,18 @@
                     const suggestions = searchProfessors(query);
                     if (suggestions.length > 0) {
                         selectProfessor(suggestions[0]);
+                    }
+                }
+            }
+        });
+
+        document.getElementById('subjectSearch').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) {
+                    const suggestions = searchSubjects(query);
+                    if (suggestions.length > 0) {
+                        selectSubject(suggestions[0]);
                     }
                 }
             }
@@ -742,7 +1272,8 @@
         // Hide suggestions when clicking outside
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.search-box')) {
-                hideSuggestions();
+                hideSuggestions('professorSuggestions');
+                hideSuggestions('subjectSuggestions');
             }
         });
     </script>
